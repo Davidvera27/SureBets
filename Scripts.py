@@ -20,17 +20,20 @@ driver.get("https://apuestas.wplay.co/es")
 wait = WebDriverWait(driver, 10)
 pager_items = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "pager-item")))
 
-# Función para imprimir detalles del evento
+# Modificar la sección de imprimir detalles del evento
 def print_event_details(team_a, team_b, time, date, odds):
     print("Evento:", team_a, "vs", team_b)
     print("Hora:", time)
     print("Fecha:", date)
     print("Equipo A:", team_a)
     print("Cuota A:", odds[0])
-    print("Empate (cuota):", odds[1])
-    print("Equipo B:", team_b)
-    print("Cuota B:", odds[2])
-    print("--------------------")
+    print("Empate (cuota):", odds[1])    
+    if len(odds) >= 3:  # Verificar si hay al menos 3 elementos en la lista
+        print("Equipo B:", team_b)
+        print("Cuota B:", odds[2])
+        print("-------------------------------")
+    else:
+        print("Cuota B no disponible")  # Mensaje alternativo si no hay cuota B
 
 # Recorre cada "pager-item"
 for pager_item in pager_items:
@@ -46,6 +49,9 @@ for pager_item in pager_items:
         # Parsear el HTML interno
         soup = BeautifulSoup(html, 'html.parser')
 
+        # Encontrar el enlace del evento
+        event_link = soup.find('a')['href']
+
         # Encontrar los nombres de los equipos y sus cuotas
         teams = soup.find_all('span', class_='seln-name')
         odds = soup.find_all('span', class_='dec')
@@ -56,8 +62,9 @@ for pager_item in pager_items:
     except NoSuchElementException:
         print("No se pudo encontrar la sección de mercados.")
 
-# Cierre del navegador
+# Cierra el navegador
 driver.quit()
+
 
 # Preguntar al usuario sobre el equipo para ver estadísticas
 equipo_buscar = input("Ingrese el nombre del equipo para ver sus estadísticas: ")
