@@ -35,6 +35,14 @@ def print_event_details(team_a, team_b, time, date, odds):
     else:
         print("Cuota B no disponible")  # Mensaje alternativo si no hay cuota B
 
+# Función para imprimir las estadísticas del evento
+def print_event_statistics(statistics):
+    print("Estadísticas del evento:")
+    for stat in statistics:
+        label = stat.find_element(By.CLASS_NAME, "stat-label").text
+        value = stat.find_element(By.CLASS_NAME, "stat-value").text
+        print(label + ":", value)
+
 # Lista para almacenar los eventos
 eventos = []
 
@@ -46,32 +54,34 @@ for pager_item in pager_items:
         date = event_info.find_element(By.CLASS_NAME, "date").text
         time = event_info.find_element(By.CLASS_NAME, "time").text
 
-        # Extraer el HTML interno del pager-item
-        html = pager_item.get_attribute('innerHTML')
+        # Hacer clic en el enlace para acceder a la página del evento
+        event_link = event_info.find_element(By.TAG_NAME, "a")
+        event_link.click()
 
-        # Parsear el HTML interno
-        soup = BeautifulSoup(html, 'html.parser')
+        # Esperar a que aparezcan las estadísticas del evento
+        stats = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "stat")))
 
-        # Encontrar los nombres de los equipos y sus cuotas
+        # Extraer y procesar las estadísticas
+        statistics = []
+        for stat in stats:
+            statistics.append(stat)
+
+        # Obtener el nombre de los equipos y las cuotas
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
         teams = soup.find_all('span', class_='seln-name')
         odds = soup.find_all('span', class_='dec')
 
-        # Crear un diccionario para el evento actual
-        evento_actual = {
-            "Equipo A": teams[0].text.strip(),
-            "Equipo B": teams[1].text.strip(),
-            "Hora": time,
-            "Fecha": date,
-            "Cuota A": odds[0].text.strip(),
-            "Cuota Empate": odds[1].text.strip(),
-        }
+        team_a = teams[0].text.strip()
+        team_b = teams[1].text.strip()
 
-        # Verificar si hay cuota para el Equipo B
-        if len(odds) >= 3:
-            evento_actual["Cuota B"] = odds[2].text.strip()
+        # Imprimir los detalles del evento
+        print_event_details(team_a, team_b, time, date, [odd.text.strip() for odd in odds])
 
-        # Agregar el diccionario del evento a la lista de eventos
-        eventos.append(evento_actual)
+        # Imprimir las estadísticas del evento
+        print_event_statistics(statistics)
+
+        # Regresar a la página anterior
+        driver.back()
 
     except NoSuchElementException:
         # Si no se encuentra la sección de mercados, pasar al siguiente pager-item
@@ -79,6 +89,3 @@ for pager_item in pager_items:
 
 # Cierra el navegador
 driver.quit()
-
-# Imprimir la lista de eventos almacenados
-print(eventos)
