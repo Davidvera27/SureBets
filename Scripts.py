@@ -20,7 +20,7 @@ driver.get("https://apuestas.wplay.co/es")
 wait = WebDriverWait(driver, 10)
 pager_items = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "pager-item")))
 
-# Modificar la sección de imprimir detalles del evento
+# Función para imprimir los detalles del evento
 def print_event_details(team_a, team_b, time, date, odds):
     print("Evento:", team_a, "vs", team_b)
     print("Hora:", time)
@@ -35,10 +35,13 @@ def print_event_details(team_a, team_b, time, date, odds):
     else:
         print("Cuota B no disponible")  # Mensaje alternativo si no hay cuota B
 
+# Lista para almacenar los eventos
+eventos = []
+
 # Recorre cada "pager-item"
 for pager_item in pager_items:
     try:
-        # Extraer fecha y hora del evento
+        # Extracción de fecha y hora del evento
         event_info = pager_item.find_element(By.CLASS_NAME, "inline-scoreboard")
         date = event_info.find_element(By.CLASS_NAME, "date").text
         time = event_info.find_element(By.CLASS_NAME, "time").text
@@ -49,50 +52,33 @@ for pager_item in pager_items:
         # Parsear el HTML interno
         soup = BeautifulSoup(html, 'html.parser')
 
-        # Encontrar el enlace del evento
-        event_link = soup.find('a')['href']
-
         # Encontrar los nombres de los equipos y sus cuotas
         teams = soup.find_all('span', class_='seln-name')
         odds = soup.find_all('span', class_='dec')
 
-        # Imprimir los detalles del evento
-        print_event_details(teams[0].text.strip(), teams[1].text.strip(), time, date, [odd.text.strip() for odd in odds])
+        # Crear un diccionario para el evento actual
+        evento_actual = {
+            "Equipo A": teams[0].text.strip(),
+            "Equipo B": teams[1].text.strip(),
+            "Hora": time,
+            "Fecha": date,
+            "Cuota A": odds[0].text.strip(),
+            "Cuota Empate": odds[1].text.strip(),
+        }
+
+        # Verificar si hay cuota para el Equipo B
+        if len(odds) >= 3:
+            evento_actual["Cuota B"] = odds[2].text.strip()
+
+        # Agregar el diccionario del evento a la lista de eventos
+        eventos.append(evento_actual)
 
     except NoSuchElementException:
-        print("No se pudo encontrar la sección de mercados.")
+        # Si no se encuentra la sección de mercados, pasar al siguiente pager-item
+        continue
 
 # Cierra el navegador
 driver.quit()
 
-
-# Preguntar al usuario sobre el equipo para ver estadísticas
-equipo_buscar = input("Ingrese el nombre del equipo para ver sus estadísticas: ")
-
-# Recorre cada "pager-item" nuevamente para buscar el equipo específico
-for pager_item in pager_items:
-    try:
-        # Extraer el HTML interno del pager-item
-        html = pager_item.get_attribute('innerHTML')
-
-        # Parsear el HTML interno
-        soup = BeautifulSoup(html, 'html.parser')
-
-        # Encontrar los nombres de los equipos
-        teams = soup.find_all('span', class_='seln-name')
-
-        # Verificar si el equipo buscado está en el evento
-        if equipo_buscar.lower() in [team.text.strip().lower() for team in teams]:
-            # Extraer fecha y hora del evento
-            event_info = pager_item.find_element(By.CLASS_NAME, "inline-scoreboard")
-            date = event_info.find_element(By.CLASS_NAME, "date").text
-            time = event_info.find_element(By.CLASS_NAME, "time").text
-
-            # Encontrar los nombres de los equipos y sus cuotas
-            odds = soup.find_all('span', class_='dec')
-
-            # Imprimir los detalles del evento específico
-            print_event_details(teams[0].text.strip(), teams[1].text.strip(), time, date, [odd.text.strip() for odd in odds])
-
-    except NoSuchElementException:
-        print("No se pudo encontrar la sección de mercados.")
+# Imprimir la lista de eventos almacenados
+print(eventos)
